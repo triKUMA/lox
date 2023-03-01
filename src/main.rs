@@ -6,9 +6,11 @@ fn main() -> color_eyre::Result<()> {
     let args: Vec<String> = env::args().collect();
     let config = parse_config(&args)?;
 
+    let mut lox = lox::Lox::new();
+
     match config.script_path {
-        Some(script_path) => lox::run_file(&script_path),
-        None => lox::run_prompt(),
+        Some(script_path) => lox.run_file(&script_path),
+        None => lox.run_prompt(),
     }
 }
 
@@ -28,5 +30,6 @@ fn parse_config(args: &[String]) -> Result<Config, color_eyre::Report> {
         return Ok(Config { script_path });
     }
 
-    Err(color_eyre::eyre::eyre!("Usage: lox [script_path]"))
+    println!("Usage: lox [script_path]");
+    std::process::exit(64);
 }

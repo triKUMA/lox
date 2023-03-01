@@ -1,48 +1,69 @@
 #[path = "./scanner.rs"]
 mod scanner;
 
+#[path = "./error_handling.rs"]
+pub mod error_handling;
+
 use std::{
     fs,
     io::{self, Write},
 };
 
-use crate::lox::scanner::Scanner;
+use crate::lox::{error_handling::ErrorReporter, scanner::Scanner};
 
-pub fn run_file(script_path: &str) -> Result<(), color_eyre::Report> {
-    let src = fs::read_to_string(script_path)?;
-
-    run(&src)
+pub struct Lox {
+    pub error_reporter: ErrorReporter,
 }
 
-pub fn run_prompt() -> Result<(), color_eyre::Report> {
-    loop {
-        print!("> ");
-        io::stdout().flush()?;
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        input = input.trim().to_string();
-
-        match input.as_ref() {
-            "exit" | "end" | "quit" => break,
-            _ => run(&input)?,
+impl Lox {
+    pub fn new() -> Self {
+        Self {
+            error_reporter: ErrorReporter::new(),
         }
     }
 
-    Ok(())
-}
+    pub fn run_file(&self, script_path: &str) -> Result<(), color_eyre::Report> {
+        let src = fs::read_to_string(script_path)?;
 
-fn run(src: &str) -> Result<(), color_eyre::Report> {
-    println!("\n{src}\n");
+        self.run(&src)?;
 
-    let scanner = Scanner {
-        src: src.to_string(),
-    };
-    let tokens = scanner.scan_tokens();
+        if self.error_reporter.had_error {
+            std::process::exit(65);
+        }
 
-    for token in tokens {
-        println!("{:?}", token.raw);
+        Ok(())
     }
 
-    Ok(())
+    pub fn run_prompt(&mut self) -> Result<(), color_eyre::Report> {
+        loop {
+            print!("> ");
+            io::stdout().flush()?;
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            input = input.trim().to_string();
+
+            match input.as_ref() {
+                "exit" | "end" | "quit" => break,
+                _ => self.run(&input)?,
+            }
+
+            self.error_reporter.had_error = false;
+        }
+
+        Ok(())
+    }
+
+    fn run(&self, src: &str) -> Result<(), color_eyre::Report> {
+        println!("\n{src}\n");
+
+        let scanner = Scanner { src };
+        let tokens = scanner.scan_tokens();
+
+        for token in tokens {
+            println!("{:?}", token.lexeme);
+        }
+
+        Ok(())
+    }
 }
