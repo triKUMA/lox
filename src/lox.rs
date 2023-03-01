@@ -55,13 +55,18 @@ impl Lox {
     }
 
     fn run(&mut self, src: &str) -> Result<(), color_eyre::Report> {
-        println!("\n{src}\n");
+        let lines_max_len = src.lines().map(|line| line.len()).max().unwrap_or(1);
+
+        println!(
+            "\n{}\n{}\n{}\n",
+            "-".repeat(lines_max_len),
+            src.trim(),
+            "-".repeat(lines_max_len)
+        );
 
         let scanner = Scanner::new(&mut self.error_reporter, src);
 
-        for token in scanner.tokens {
-            println!("{:?}", token.lexeme);
-        }
+        scanner.display_tokens();
 
         Ok(())
     }

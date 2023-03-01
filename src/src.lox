@@ -1,3 +1,11 @@
-fun printSum(a, b) {
+// This is a comment.
+fn printSum(a, b) {
   print a + b;
+
+  return "hello";
 }
+
+// This is another comment...
+// But it spans multiple lines :O
+
+let val = printSum(13, 27);
