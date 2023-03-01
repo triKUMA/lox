@@ -22,7 +22,7 @@ impl Lox {
         }
     }
 
-    pub fn run_file(&self, script_path: &str) -> Result<(), color_eyre::Report> {
+    pub fn run_file(&mut self, script_path: &str) -> Result<(), color_eyre::Report> {
         let src = fs::read_to_string(script_path)?;
 
         self.run(&src)?;
@@ -54,13 +54,12 @@ impl Lox {
         Ok(())
     }
 
-    fn run(&self, src: &str) -> Result<(), color_eyre::Report> {
+    fn run(&mut self, src: &str) -> Result<(), color_eyre::Report> {
         println!("\n{src}\n");
 
-        let scanner = Scanner { src };
-        let tokens = scanner.scan_tokens();
+        let scanner = Scanner::new(&mut self.error_reporter, src);
 
-        for token in tokens {
+        for token in scanner.tokens {
             println!("{:?}", token.lexeme);
         }
 
