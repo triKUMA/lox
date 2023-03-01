@@ -48,7 +48,7 @@ impl<'a> Scanner<'a> {
             self.tokens.push(Token {
                 token_type: TokenType::Eof,
                 lexeme: "",
-                literal: TokenLiteral::None,
+                value: TokenValue::None,
                 line: self.line,
             });
         }
@@ -65,16 +65,16 @@ impl<'a> Scanner<'a> {
             '\n' => self.line += 1,
 
             // Single char token matching
-            '(' => self.add_token(TokenType::LeftParen, TokenLiteral::None),
-            ')' => self.add_token(TokenType::RightParen, TokenLiteral::None),
-            '{' => self.add_token(TokenType::LeftBrace, TokenLiteral::None),
-            '}' => self.add_token(TokenType::RightBrace, TokenLiteral::None),
-            ',' => self.add_token(TokenType::Comma, TokenLiteral::None),
-            '.' => self.add_token(TokenType::Period, TokenLiteral::None),
-            '-' => self.add_token(TokenType::Minus, TokenLiteral::None),
-            '+' => self.add_token(TokenType::Plus, TokenLiteral::None),
-            ';' => self.add_token(TokenType::Semicolon, TokenLiteral::None),
-            '*' => self.add_token(TokenType::Asterisk, TokenLiteral::None),
+            '(' => self.add_token(TokenType::LeftParen, None),
+            ')' => self.add_token(TokenType::RightParen, None),
+            '{' => self.add_token(TokenType::LeftBrace, None),
+            '}' => self.add_token(TokenType::RightBrace, None),
+            ',' => self.add_token(TokenType::Comma, None),
+            '.' => self.add_token(TokenType::Period, None),
+            '-' => self.add_token(TokenType::Minus, None),
+            '+' => self.add_token(TokenType::Plus, None),
+            ';' => self.add_token(TokenType::Semicolon, None),
+            '*' => self.add_token(TokenType::Asterisk, None),
 
             // Single or double char token matching
             '!' => {
@@ -83,7 +83,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::Bang
                 };
-                self.add_token(token_type, TokenLiteral::None)
+                self.add_token(token_type, None)
             }
             '=' => {
                 let token_type = if self.char_match('=') {
@@ -91,7 +91,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::Equal
                 };
-                self.add_token(token_type, TokenLiteral::None)
+                self.add_token(token_type, None)
             }
             '<' => {
                 let token_type = if self.char_match('=') {
@@ -99,7 +99,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::Less
                 };
-                self.add_token(token_type, TokenLiteral::None)
+                self.add_token(token_type, None)
             }
             '>' => {
                 let token_type = if self.char_match('=') {
@@ -107,7 +107,7 @@ impl<'a> Scanner<'a> {
                 } else {
                     TokenType::Greater
                 };
-                self.add_token(token_type, TokenLiteral::None)
+                self.add_token(token_type, None)
             }
 
             // Either matches a division token, or will consume a comment.
@@ -117,14 +117,15 @@ impl<'a> Scanner<'a> {
                         self.advance();
                     }
                 } else {
-                    self.add_token(TokenType::Slash, TokenLiteral::None)
+                    self.add_token(TokenType::Slash, None)
                 }
             }
 
             // Generates a token for a string.
             '"' => self.string(),
 
-            // If an unexpected character is found, inform the user of the unexpected character.
+            // If any other character is found, try to parse either a number or identifier/keyword from source,
+            // otherwise simply inform the user of the unexpected character.
             c => {
                 if c.is_ascii_digit() {
                     self.number();
@@ -138,13 +139,16 @@ impl<'a> Scanner<'a> {
         }
     }
 
-    fn add_token(&mut self, token_type: TokenType, literal: TokenLiteral<'a>) {
+    fn add_token<T1>(&mut self, token_type: TokenType, value: T1)
+    where
+        T1: Into<Option<TokenValue<'a>>>,
+    {
         let text = &self.src[self.start..self.current];
 
         self.tokens.push(Token {
             token_type,
             lexeme: text,
-            literal,
+            value: value.into().unwrap_or(TokenValue::None),
             line: self.line,
         });
     }
@@ -198,7 +202,7 @@ impl<'a> Scanner<'a> {
         self.advance();
 
         let value = &self.src[(self.start + 1)..(self.current - 1)];
-        self.add_token(TokenType::String, TokenLiteral::String(value))
+        self.add_token(TokenType::String, TokenValue::String(value))
     }
 
     fn number(&mut self) {
@@ -218,7 +222,7 @@ impl<'a> Scanner<'a> {
 
         self.add_token(
             TokenType::Number,
-            TokenLiteral::Number(value.parse().unwrap()),
+            TokenValue::Number(value.parse().unwrap()),
         );
     }
 
@@ -234,13 +238,8 @@ impl<'a> Scanner<'a> {
             .get(value)
             .unwrap_or(&TokenType::Identifier)
             .clone();
-        let token_literal = if token_type == TokenType::Identifier {
-            TokenLiteral::String(value)
-        } else {
-            TokenLiteral::None
-        };
 
-        self.add_token(token_type, token_literal);
+        self.add_token(token_type, None);
     }
 
     fn populate_keywords(&mut self) {
@@ -266,22 +265,24 @@ impl<'a> Scanner<'a> {
         for token in &self.tokens {
             println!(
                 "{}",
-                match token.literal {
-                    TokenLiteral::String(val) => match token.token_type {
-                        TokenType::Identifier => format!("Identifier: {}", val),
+                match token.value {
+                    TokenValue::String(val) => match token.token_type {
                         TokenType::String => format!("    String: \"{}\"", val),
                         _ => format!("   Keyword: {}", val),
                     },
-                    TokenLiteral::Number(val) => format!("    Number: {}", val),
-                    TokenLiteral::None => format!(
-                        "{}: {}",
-                        if self.keywords.get(token.lexeme).is_some() {
-                            "   Keyword"
-                        } else {
-                            "     Other"
-                        },
-                        token.lexeme
-                    ),
+                    TokenValue::Number(val) => format!("    Number: {}", val),
+                    TokenValue::None => match token.token_type {
+                        TokenType::Identifier => format!("Identifier: {}", token.lexeme),
+                        _ => format!(
+                            "{}: {}",
+                            if self.keywords.get(token.lexeme).is_some() {
+                                "   Keyword"
+                            } else {
+                                "     Other"
+                            },
+                            token.lexeme
+                        ),
+                    },
                 }
             );
         }
@@ -292,12 +293,12 @@ impl<'a> Scanner<'a> {
 pub struct Token<'a> {
     pub token_type: TokenType,
     pub lexeme: &'a str,
-    pub literal: TokenLiteral<'a>,
+    pub value: TokenValue<'a>,
     pub line: usize,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum TokenLiteral<'a> {
+pub enum TokenValue<'a> {
     String(&'a str),
     Number(f64),
     None,
@@ -328,7 +329,7 @@ pub enum TokenType {
     Less,
     LessEqual,
 
-    // Literals
+    // Types
     Identifier,
     String,
     Number,
