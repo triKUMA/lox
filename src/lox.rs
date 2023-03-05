@@ -1,15 +1,21 @@
-#[path = "./scanner.rs"]
-mod scanner;
-
 #[path = "./error_handling.rs"]
 pub mod error_handling;
+#[path = "./scanner.rs"]
+pub mod scanner;
+#[path = "./syntax_tree.rs"]
+pub mod syntax_tree;
 
 use std::{
     fs,
     io::{self, Write},
 };
 
-use crate::lox::{error_handling::ErrorReporter, scanner::Scanner};
+use self::{
+    error_handling::ErrorReporter,
+    scanner::{Scanner, TokenValue},
+};
+
+use self::syntax_tree::Expr;
 
 pub struct Lox {
     pub error_reporter: ErrorReporter,
@@ -20,6 +26,35 @@ impl Lox {
         Self {
             error_reporter: ErrorReporter::new(),
         }
+    }
+
+    fn run(&mut self, src: &str) -> Result<(), color_eyre::Report> {
+        let scanner = Scanner::new(&mut self.error_reporter, src);
+
+        let syntax_tree = Expr::Binary(
+            Box::new(Expr::Unary(
+                scanner::Token {
+                    token_type: scanner::TokenType::Minus,
+                    lexeme: "-",
+                    value: scanner::TokenValue::None,
+                    line: 0,
+                },
+                Box::new(Expr::Value(scanner::TokenValue::Number(123.0))),
+            )),
+            scanner::Token {
+                token_type: scanner::TokenType::Asterisk,
+                lexeme: "*",
+                value: scanner::TokenValue::None,
+                line: 0,
+            },
+            Box::new(Expr::Grouping(Box::new(Expr::Value(
+                scanner::TokenValue::Number(45.67),
+            )))),
+        );
+
+        println!("{syntax_tree}");
+
+        Ok(())
     }
 
     pub fn run_file(&mut self, script_path: &str) -> Result<(), color_eyre::Report> {
@@ -50,23 +85,6 @@ impl Lox {
 
             self.error_reporter.had_error = false;
         }
-
-        Ok(())
-    }
-
-    fn run(&mut self, src: &str) -> Result<(), color_eyre::Report> {
-        let lines_max_len = src.lines().map(|line| line.len()).max().unwrap_or(1);
-
-        println!(
-            "\n{}\n{}\n{}\n",
-            "-".repeat(lines_max_len),
-            src.trim(),
-            "-".repeat(lines_max_len)
-        );
-
-        let scanner = Scanner::new(&mut self.error_reporter, src);
-
-        scanner.display_tokens();
 
         Ok(())
     }

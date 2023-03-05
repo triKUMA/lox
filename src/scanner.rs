@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use super::error_handling::ErrorReporter;
+use std::collections::HashMap;
 
 pub struct Scanner<'a> {
     error_reporter: &'a mut ErrorReporter,
@@ -295,6 +294,12 @@ pub struct Token<'a> {
     pub lexeme: &'a str,
     pub value: TokenValue<'a>,
     pub line: usize,
+}
+
+impl<'a> std::fmt::Display for Token<'a> {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.lexeme)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
