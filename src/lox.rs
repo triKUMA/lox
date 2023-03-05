@@ -5,17 +5,12 @@ pub mod scanner;
 #[path = "./syntax_tree.rs"]
 pub mod syntax_tree;
 
+use self::syntax_tree::Expr;
+use self::{error_handling::ErrorReporter, scanner::Scanner};
 use std::{
     fs,
     io::{self, Write},
 };
-
-use self::{
-    error_handling::ErrorReporter,
-    scanner::{Scanner, TokenValue},
-};
-
-use self::syntax_tree::Expr;
 
 pub struct Lox {
     pub error_reporter: ErrorReporter,

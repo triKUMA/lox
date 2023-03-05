@@ -1,6 +1,6 @@
-use std::env;
-
 mod lox;
+
+use std::env;
 
 fn main() -> color_eyre::Result<()> {
     let args: Vec<String> = env::args().collect();

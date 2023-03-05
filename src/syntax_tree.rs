@@ -1,4 +1,4 @@
-use crate::lox::scanner::*;
+use super::scanner::*;
 
 pub enum Expr<'a> {
     Value(TokenValue<'a>),
@@ -15,27 +15,25 @@ impl<'a> std::fmt::Display for Expr<'a> {
             Expr::Value(val) => match val {
                 TokenValue::String(string) => {
                     let string = format!("\"{}\"", string);
-                    return formatter.write_str(string.as_ref());
+                    formatter.write_str(string.as_ref())
                 }
                 TokenValue::Number(num) => {
                     let string = num.to_string();
-                    return formatter.write_str(string.as_ref());
+                    formatter.write_str(string.as_ref())
                 }
-                TokenValue::None => {
-                    return formatter.write_str("null");
-                }
+                TokenValue::None => formatter.write_str("null"),
             },
             Expr::Grouping(expr) => {
                 let string = format!("(group {})", expr);
-                return formatter.write_str(string.as_ref());
+                formatter.write_str(string.as_ref())
             }
             Expr::Unary(token, expr) => {
                 let string = format!("({}{})", token, expr);
-                return formatter.write_str(string.as_ref());
+                formatter.write_str(string.as_ref())
             }
             Expr::Binary(expr1, token, expr2) => {
                 let string = format!("({} {} {})", expr1, token, expr2);
-                return formatter.write_str(string.as_ref());
+                formatter.write_str(string.as_ref())
             }
         }
     }
